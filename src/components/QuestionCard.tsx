@@ -25,7 +25,7 @@ const QuestionCard = ({
   showResult
 }: QuestionCardProps) => {
   return (
-    <Card className="border-r-4 border-r-primary shadow-soft hover:shadow-medium transition-shadow">
+    <Card className="border-r-4 border-r-primary shadow-soft hover:shadow-medium transition-shadow" dir="rtl">
       <CardContent className="p-6">
         <div className="flex gap-4">
           <div className="flex-shrink-0">
@@ -46,7 +46,7 @@ const QuestionCard = ({
             </div>
           </div>
           <div className="flex-1 space-y-4">
-            <h4 className="text-lg font-semibold text-foreground">
+            <h4 className="text-lg font-semibold text-foreground text-right">
               {question}
             </h4>
             
@@ -54,6 +54,7 @@ const QuestionCard = ({
               value={selectedAnswer?.toString() ?? ""}
               onValueChange={(value) => !showResult && onAnswerSelect(parseInt(value))}
               disabled={showResult}
+              dir="rtl"
             >
               <div className="space-y-3">
                 {options.map((option, index) => {
@@ -78,21 +79,21 @@ const QuestionCard = ({
                       <RadioGroupItem
                         value={index.toString()}
                         id={`q${number}-opt${index}`}
-                        className="mt-0.5"
+                        className="mt-0.5 order-last"
                       />
                       <Label
                         htmlFor={`q${number}-opt${index}`}
-                        className={`flex-1 cursor-pointer text-base leading-relaxed ${
+                        className={`flex-1 cursor-pointer text-base leading-relaxed text-right ${
                           showResult ? 'cursor-default' : ''
                         }`}
                       >
                         {option}
                       </Label>
                       {showCorrect && (
-                        <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                        <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 order-first" />
                       )}
                       {showWrong && (
-                        <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                        <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 order-first" />
                       )}
                     </div>
                   );
@@ -102,7 +103,7 @@ const QuestionCard = ({
 
             {showResult && explanation && (
               <div className="pr-7 pt-2">
-                <p className="text-sm text-muted-foreground leading-relaxed bg-muted/30 p-4 rounded-lg border-r-2 border-r-primary/50">
+                <p className="text-sm text-muted-foreground leading-relaxed bg-muted/30 p-4 rounded-lg border-r-2 border-r-primary/50 text-right">
                   <strong>الشرح:</strong> {explanation}
                 </p>
               </div>

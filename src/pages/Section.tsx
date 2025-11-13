@@ -6,7 +6,7 @@ import { loadSectionContent } from "@/utils/contentLoader";
 import QuestionCard from "@/components/QuestionCard";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, BookOpen, CheckCircle } from "lucide-react";
+import { RefreshCw, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface QA {
@@ -21,7 +21,6 @@ const Section = () => {
   const { sectionId } = useParams<{ sectionId: string }>();
   const [questions, setQuestions] = useState<QA[]>([]);
   const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
-  const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(true);
   const [contentHtml, setContentHtml] = useState<string>("");
   const { toast } = useToast();
@@ -32,7 +31,6 @@ const Section = () => {
     if (!sectionId) return;
     
     setLoading(true);
-    setShowResults(false);
     try {
       const randomQuestions = await getRandomQuestions(sectionId);
       setQuestions(randomQuestions);
@@ -70,33 +68,14 @@ const Section = () => {
     setUserAnswers(newAnswers);
   };
 
-  const handleSubmit = () => {
-    const unanswered = userAnswers.filter(a => a === null).length;
-    if (unanswered > 0) {
-      toast({
-        title: "تنبيه",
-        description: `لم تجب على ${unanswered} سؤال/أسئلة`,
-        variant: "destructive",
-      });
-      return;
-    }
-    setShowResults(true);
-    
-    const score = userAnswers.reduce((acc, answer, index) => {
-      return acc + (answer === questions[index].correctAnswer ? 1 : 0);
-    }, 0);
-
-    toast({
-      title: "النتيجة",
-      description: `لقد حصلت على ${score} من ${questions.length}`,
-    });
-  };
-
   const calculateScore = () => {
     return userAnswers.reduce((acc, answer, index) => {
+      if (answer === null) return acc;
       return acc + (answer === questions[index].correctAnswer ? 1 : 0);
     }, 0);
   };
+
+  const answeredCount = userAnswers.filter(a => a !== null).length;
 
   if (!section) {
     return (
@@ -173,42 +152,34 @@ const Section = () => {
                 </span>
               </div>
               
-              <div className="flex gap-2">
-                {!showResults && userAnswers.every(a => a !== null) && (
-                  <Button
-                    onClick={handleSubmit}
-                    className="gap-2"
-                    size="sm"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    عرض النتيجة
-                  </Button>
-                )}
-                <Button
-                  onClick={loadQuestions}
-                  disabled={loading}
-                  variant="outline"
-                  className="gap-2"
-                  size="sm"
-                >
-                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                  أسئلة جديدة
-                </Button>
-              </div>
+              <Button
+                onClick={loadQuestions}
+                disabled={loading}
+                variant="outline"
+                className="gap-2"
+                size="sm"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                أسئلة جديدة
+              </Button>
             </div>
 
-            {showResults && (
+            {/* Score Display - Shows as you answer */}
+            {answeredCount > 0 && (
               <div className="mb-6 p-6 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border-2 border-primary/20">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-xl font-bold text-foreground mb-2">النتيجة النهائية</h3>
+                    <h3 className="text-xl font-bold text-foreground mb-2">النتيجة الحالية</h3>
                     <p className="text-muted-foreground">
-                      لقد أجبت بشكل صحيح على {calculateScore()} من {questions.length} سؤال
+                      أجبت على {answeredCount} من {questions.length} سؤال • 
+                      إجابات صحيحة: {calculateScore()}
                     </p>
                   </div>
-                  <div className="text-5xl font-bold text-primary">
-                    {Math.round((calculateScore() / questions.length) * 100)}%
-                  </div>
+                  {answeredCount === questions.length && (
+                    <div className="text-5xl font-bold text-primary">
+                      {Math.round((calculateScore() / questions.length) * 100)}%
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -230,7 +201,7 @@ const Section = () => {
                     number={index + 1}
                     selectedAnswer={userAnswers[index]}
                     onAnswerSelect={(answer) => handleAnswerSelect(index, answer)}
-                    showResult={showResults}
+                    showResult={userAnswers[index] !== null}
                   />
                 ))}
               </div>

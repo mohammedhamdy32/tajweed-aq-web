@@ -1,6 +1,6 @@
 export const loadSectionContent = async (sectionId: string): Promise<string> => {
   try {
-    const response = await fetch(`/src/content/sections/${sectionId}.html`);
+    const response = await fetch(`/content/sections/${sectionId}.html`);
     if (!response.ok) {
       throw new Error(`Failed to load content for section ${sectionId}`);
     }
