@@ -1,7 +1,9 @@
 interface QA {
   id: number;
   question: string;
-  answer: string;
+  options: string[];
+  correctAnswer: number;
+  explanation?: string;
 }
 
 // Function to shuffle array

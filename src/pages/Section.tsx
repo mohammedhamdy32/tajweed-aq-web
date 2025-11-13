@@ -2,22 +2,28 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { sections } from "@/data/sections";
 import { getRandomQuestions } from "@/utils/qaLoader";
+import { loadSectionContent } from "@/utils/contentLoader";
 import QuestionCard from "@/components/QuestionCard";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, BookOpen } from "lucide-react";
+import { RefreshCw, BookOpen, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface QA {
   id: number;
   question: string;
-  answer: string;
+  options: string[];
+  correctAnswer: number;
+  explanation?: string;
 }
 
 const Section = () => {
   const { sectionId } = useParams<{ sectionId: string }>();
   const [questions, setQuestions] = useState<QA[]>([]);
+  const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
+  const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [contentHtml, setContentHtml] = useState<string>("");
   const { toast } = useToast();
 
   const section = sections.find((s) => s.id === sectionId);
@@ -26,9 +32,11 @@ const Section = () => {
     if (!sectionId) return;
     
     setLoading(true);
+    setShowResults(false);
     try {
       const randomQuestions = await getRandomQuestions(sectionId);
       setQuestions(randomQuestions);
+      setUserAnswers(new Array(randomQuestions.length).fill(null));
     } catch (error) {
       console.error("Error loading questions:", error);
       toast({
@@ -41,9 +49,54 @@ const Section = () => {
     }
   };
 
+  const loadContent = async () => {
+    if (!sectionId) return;
+    try {
+      const html = await loadSectionContent(sectionId);
+      setContentHtml(html);
+    } catch (error) {
+      console.error("Error loading content:", error);
+    }
+  };
+
   useEffect(() => {
     loadQuestions();
+    loadContent();
   }, [sectionId]);
+
+  const handleAnswerSelect = (questionIndex: number, answer: number) => {
+    const newAnswers = [...userAnswers];
+    newAnswers[questionIndex] = answer;
+    setUserAnswers(newAnswers);
+  };
+
+  const handleSubmit = () => {
+    const unanswered = userAnswers.filter(a => a === null).length;
+    if (unanswered > 0) {
+      toast({
+        title: "تنبيه",
+        description: `لم تجب على ${unanswered} سؤال/أسئلة`,
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowResults(true);
+    
+    const score = userAnswers.reduce((acc, answer, index) => {
+      return acc + (answer === questions[index].correctAnswer ? 1 : 0);
+    }, 0);
+
+    toast({
+      title: "النتيجة",
+      description: `لقد حصلت على ${score} من ${questions.length}`,
+    });
+  };
+
+  const calculateScore = () => {
+    return userAnswers.reduce((acc, answer, index) => {
+      return acc + (answer === questions[index].correctAnswer ? 1 : 0);
+    }, 0);
+  };
 
   if (!section) {
     return (
@@ -91,14 +144,16 @@ const Section = () => {
             </div>
             
             <div className="bg-card rounded-xl p-8 shadow-medium border-2">
-              <div className="prose prose-lg max-w-none">
-                <p className="text-muted-foreground text-lg leading-relaxed">
-                  هنا يمكنك إضافة الشرح التفصيلي لهذا القسم. يمكن تخزين محتوى الشرح في ملف HTML/CSS منفصل وعرضه هنا.
-                </p>
-                <p className="text-muted-foreground text-lg leading-relaxed mt-4">
-                  لإضافة المحتوى، قم بتحرير الملف المخصص للشرح في المجلد <code className="text-primary">src/content/sections/{sectionId}.html</code>
-                </p>
-              </div>
+              {contentHtml ? (
+                <div 
+                  dangerouslySetInnerHTML={{ __html: contentHtml }}
+                  className="prose prose-lg max-w-none"
+                />
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">جاري تحميل الشرح...</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -108,7 +163,7 @@ const Section = () => {
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
               <div className="flex items-center gap-3">
                 <h2 className="text-2xl md:text-3xl font-bold text-foreground">
                   الأسئلة والأجوبة
@@ -118,16 +173,45 @@ const Section = () => {
                 </span>
               </div>
               
-              <Button
-                onClick={loadQuestions}
-                disabled={loading}
-                className="gap-2"
-                size="sm"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                أسئلة جديدة
-              </Button>
+              <div className="flex gap-2">
+                {!showResults && userAnswers.every(a => a !== null) && (
+                  <Button
+                    onClick={handleSubmit}
+                    className="gap-2"
+                    size="sm"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    عرض النتيجة
+                  </Button>
+                )}
+                <Button
+                  onClick={loadQuestions}
+                  disabled={loading}
+                  variant="outline"
+                  className="gap-2"
+                  size="sm"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  أسئلة جديدة
+                </Button>
+              </div>
             </div>
+
+            {showResults && (
+              <div className="mb-6 p-6 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border-2 border-primary/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-foreground mb-2">النتيجة النهائية</h3>
+                    <p className="text-muted-foreground">
+                      لقد أجبت بشكل صحيح على {calculateScore()} من {questions.length} سؤال
+                    </p>
+                  </div>
+                  <div className="text-5xl font-bold text-primary">
+                    {Math.round((calculateScore() / questions.length) * 100)}%
+                  </div>
+                </div>
+              </div>
+            )}
 
             {loading ? (
               <div className="text-center py-12">
@@ -140,8 +224,13 @@ const Section = () => {
                   <QuestionCard
                     key={qa.id}
                     question={qa.question}
-                    answer={qa.answer}
+                    options={qa.options}
+                    correctAnswer={qa.correctAnswer}
+                    explanation={qa.explanation}
                     number={index + 1}
+                    selectedAnswer={userAnswers[index]}
+                    onAnswerSelect={(answer) => handleAnswerSelect(index, answer)}
+                    showResult={showResults}
                   />
                 ))}
               </div>
