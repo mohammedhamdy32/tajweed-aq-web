@@ -1,0 +1,1 @@
+const o=[{id:1,question:"ما هو تعريف التجويد لغة؟",options:["التحسين والإتقان","القراءة السريعة","الحفظ","الترتيل"],correctAnswer:0,explanation:"التجويد لغة يعني التحسين والإتقان"},{id:2,question:"...",options:["...","...","...","..."],correctAnswer:0}];export{o as default};
