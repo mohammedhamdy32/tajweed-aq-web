@@ -138,7 +138,7 @@ const Section = () => {
                 </h2>
               </div>
               
-              <div className="bg-card rounded-xl p-8 shadow-medium border-2">
+              {/* <div className="bg-card rounded-xl p-8 shadow-medium border-2"> */}
                 {contentHtml ? (
                   <div 
                     dangerouslySetInnerHTML={{ __html: contentHtml }}
@@ -149,7 +149,7 @@ const Section = () => {
                     <p className="text-muted-foreground">جاري تحميل الشرح...</p>
                   </div>
                 )}
-              </div>
+              {/* </div> */}
 
               {/* Test Yourself Button */}
               {contentHtml && (
